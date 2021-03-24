@@ -34,7 +34,10 @@ The sequence diagram also acts as a reference frame for `getCommand`.
 
 ## Assignment Component
 
+## UI Component
 
+The UI Component consists of one class - `Ui` which provides all the functions 
+required to print different kinds of messages on the console.
 
 
 ## Implementation
