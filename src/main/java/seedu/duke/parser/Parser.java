@@ -1,6 +1,5 @@
 package seedu.duke.parser;
 
-import seedu.duke.data.lesson.Day;
 import seedu.duke.command.AddAssignmentCommand;
 import seedu.duke.command.AddModuleCommand;
 import seedu.duke.command.AddStudentCommand;
@@ -31,6 +30,7 @@ import seedu.duke.command.ViewAnswersCommand;
 import seedu.duke.command.ViewScriptCommand;
 import seedu.duke.exception.DateTimeFormatException;
 import seedu.duke.exception.DayFormatException;
+import seedu.duke.exception.EmptyTimetableParameterException;
 import seedu.duke.exception.IndexNotFoundException;
 import seedu.duke.exception.InsufficientParametersException;
 import seedu.duke.exception.InvalidCommandException;
@@ -38,6 +38,7 @@ import seedu.duke.exception.InvalidPercentageException;
 import seedu.duke.exception.ModManException;
 import seedu.duke.exception.ModuleNotFoundException;
 import seedu.duke.exception.ModuleNotSelectedException;
+import seedu.duke.exception.TimeFormatException;
 
 import java.time.format.DateTimeParseException;
 import java.util.logging.Level;
@@ -82,9 +83,6 @@ public class Parser {
             command = getRemoveModuleCommand(line);
         } else if (line.equals("current")) {
             command = getCurrentModuleCommand();
-        } else if (currentModule == null && !line.startsWith("select ")) {
-            logger.log(Level.WARNING, "module not selected");
-            throw new ModuleNotSelectedException();
         } else if (line.startsWith("add assignment ")) {
             command = getAddAssignmentCommand(line);
         } else if (line.equals("list assignments")) {
@@ -140,7 +138,8 @@ public class Parser {
         return command;
     }
 
-    private static Command getViewScriptCommand(String line) throws InsufficientParametersException {
+    private static Command getViewScriptCommand(String line)
+            throws InsufficientParametersException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "view script command entered");
@@ -159,7 +158,8 @@ public class Parser {
     }
   
 
-    private static Command getAutogradeAssignentCommand(String line) throws InsufficientParametersException {
+    private static Command getAutogradeAssignentCommand(String line)
+            throws InsufficientParametersException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "autograde assignment command entered");
@@ -175,7 +175,8 @@ public class Parser {
     }
     
            
-    private static Command getViewAnswersCommand(String line) throws InsufficientParametersException {
+    private static Command getViewAnswersCommand(String line)
+            throws InsufficientParametersException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "view assignment answers command entered");
@@ -261,7 +262,7 @@ public class Parser {
     }
 
     private static Command getSetAssignmentDeadlineCommand(String line) throws InsufficientParametersException,
-            DateTimeFormatException {
+            DateTimeFormatException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "set deadline command entered");
@@ -282,7 +283,8 @@ public class Parser {
         return command;
     }
 
-    private static Command getSetAssignmentCommentsCommand(String line) throws InsufficientParametersException {
+    private static Command getSetAssignmentCommentsCommand(String line)
+            throws InsufficientParametersException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "set comments command entered");
@@ -300,7 +302,8 @@ public class Parser {
         return command;
     }
 
-    private static Command getGetAssignmentCommentsCommand(String line) throws InsufficientParametersException {
+    private static Command getGetAssignmentCommentsCommand(String line)
+            throws InsufficientParametersException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "set comments command entered");
@@ -315,7 +318,8 @@ public class Parser {
         return command;
     }
 
-    private static Command getSetAssignmentGradeCommand(String line) throws InsufficientParametersException {
+    private static Command getSetAssignmentGradeCommand(String line)
+            throws InsufficientParametersException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "set assignment grade command entered");
@@ -337,7 +341,7 @@ public class Parser {
     }
 
     private static Command getSetAssignmentPercentageCommand(String line) throws InvalidCommandException,
-            InvalidPercentageException {
+            InvalidPercentageException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "setAssignmentPercentage command entered");
@@ -359,18 +363,13 @@ public class Parser {
 
     private static Command getListStudentDetailsCommand() throws ModuleNotSelectedException {
         Command command;
-        try {
-            logger.log(Level.INFO, "list student details command entered");
-            command = new ListStudentsDetailsCommand(currentModule);
-        } catch (ModuleNotFoundException e) {
-            logger.log(Level.WARNING, "module directory not selected");
-            throw new ModuleNotSelectedException();
-        }
+        logger.log(Level.INFO, "list student details command entered");
+        command = new ListStudentsDetailsCommand(currentModule);
         return command;
     }
 
     private static Command getAddTimetableCommand(String line) throws InsufficientParametersException,
-            DateTimeFormatException, DayFormatException, ModuleNotSelectedException {
+            DayFormatException, ModuleNotSelectedException, TimeFormatException, EmptyTimetableParameterException {
         Command command;
         String typeSeparator = "/t";
         String venueSeparator = "/v";
@@ -386,22 +385,24 @@ public class Parser {
             int endIndex = line.indexOf(endSeparator);
             String type = line.substring(typeIndex + T_LENGTH, venueIndex - 1);
             String venue = line.substring(venueIndex + V_LENGTH, dayIndex - 1);
-            Day day = Day.valueOf(line.substring(dayIndex + D_LENGTH, startIndex - 1));
+            String day = line.substring(dayIndex + D_LENGTH, startIndex - 1);
             String start = line.substring(startIndex + S_LENGTH, endIndex - 1);
-            String end = line.substring(endIndex + E_LENGTH).trim();
+            String end = (line + " ").substring(endIndex + E_LENGTH).trim();
             command = new AddTimetableCommand(currentModule, type, venue, day, start, end);
         } catch (StringIndexOutOfBoundsException e) {
             logger.log(Level.WARNING, "not enough parameters for set assignment deadline command");
             throw new InsufficientParametersException();
         } catch (DateTimeParseException e) {
             logger.log(Level.WARNING, "Start/End time format is wrong.");
-            throw new DateTimeFormatException();
+            throw new TimeFormatException();
         } catch (IllegalArgumentException e) {
             logger.log(Level.WARNING, "Day format is wrong.");
             throw new DayFormatException();
         } catch (ModuleNotSelectedException e) {
             logger.log(Level.WARNING, "module directory not selected.");
             throw new ModuleNotSelectedException();
+        } catch (EmptyTimetableParameterException e) {
+            throw e;
         }
         return command;
     }
@@ -419,7 +420,7 @@ public class Parser {
     }
 
     private static Command getEditModuleTimetableCommand(String line) throws InsufficientParametersException,
-            IndexNotFoundException {
+            IndexNotFoundException, ModuleNotSelectedException {
         Command command;
         String typeSeparator = "/t";
         String venueSeparator = "/v";
@@ -438,7 +439,7 @@ public class Parser {
             String venue = line.substring(venueIndex + V_LENGTH, dayIndex - 1);
             String day = line.substring(dayIndex + D_LENGTH, startIndex - 1);
             String start = line.substring(startIndex + S_LENGTH, endIndex - 1);
-            String end = line.substring(endIndex + E_LENGTH).trim();
+            String end = (line + " ").substring(endIndex + E_LENGTH).trim();
             command = new EditModuleTimetableCommand(lessonIndex, currentModule, type, venue, day, start, end);
         } catch (StringIndexOutOfBoundsException e) {
             logger.log(Level.WARNING, "not enough parameters for edit timetable command");
@@ -450,7 +451,8 @@ public class Parser {
         return command;
     }
 
-    private static Command getDeleteModuleTimetableCommand(String line) throws IndexNotFoundException {
+    private static Command getDeleteModuleTimetableCommand(String line)
+            throws IndexNotFoundException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "delete timetable command entered");
@@ -464,7 +466,7 @@ public class Parser {
         return command;
     }
 
-    private static Command getListStudentCommand() throws InsufficientParametersException {
+    private static Command getListStudentCommand() throws ModuleNotSelectedException {
         Command command;
         logger.log(Level.INFO, "list student command entered");
         command = new ListModuleStudentsCommand(currentModule);
@@ -496,7 +498,7 @@ public class Parser {
         return command;
     }
 
-    private static Command getListModuleAssignmentCommand() {
+    private static Command getListModuleAssignmentCommand() throws ModuleNotSelectedException {
         Command command;
         logger.log(Level.INFO, "list assignment command entered");
         command = new ListModuleAssignmentsCommand(currentModule);
@@ -504,7 +506,7 @@ public class Parser {
     }
 
     private static Command getAddAssignmentCommand(String line) throws InvalidCommandException,
-            InsufficientParametersException {
+            InsufficientParametersException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "add assignment command entered");
@@ -522,7 +524,8 @@ public class Parser {
         return command;
     }
 
-    private static Command getListStudentAssignmentGradesCommand(String line) throws InsufficientParametersException {
+    private static Command getListStudentAssignmentGradesCommand(String line)
+            throws InsufficientParametersException, ModuleNotSelectedException {
         Command command;
         try {
             logger.log(Level.INFO, "list student assignment grades command entered");
